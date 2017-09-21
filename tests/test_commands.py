@@ -10,7 +10,7 @@ from redis._compat import (unichr, u, b, ascii_letters, iteritems, iterkeys,
 from redis.client import parse_info
 from redis import exceptions
 
-from .conftest import skip_if_server_version_lt
+from .conftest import skip_if_server_version_lt, skip_if_server_version_gte
 
 
 @pytest.fixture()
@@ -901,6 +901,8 @@ class TestRedisCommands(object):
         r.zadd('a', a1=1, a2=2, a3=3)
         assert r.zcount('a', '-inf', '+inf') == 3
         assert r.zcount('a', 1, 2) == 2
+        assert r.zcount('a', '(' + str(1), 2) == 1
+        assert r.zcount('a', 1, '(' + str(2)) == 1
         assert r.zcount('a', 10, 20) == 0
 
     def test_zincrby(self, r):
@@ -1458,6 +1460,15 @@ class TestRedisCommands(object):
         assert r.geopos('barcelona', 'place1', 'place2') ==\
             [(2.19093829393386841, 41.43379028184083523),
              (2.18737632036209106, 41.40634178640635099)]
+
+    @skip_if_server_version_lt('4.0.0')
+    def test_geopos_no_value(self, r):
+        assert r.geopos('barcelona', 'place1', 'place2') == [None, None]
+
+    @skip_if_server_version_lt('3.2.0')
+    @skip_if_server_version_gte('4.0.0')
+    def test_old_geopos_no_value(self, r):
+        assert r.geopos('barcelona', 'place1', 'place2') == []
 
     @skip_if_server_version_lt('3.2.0')
     def test_georadius(self, r):
